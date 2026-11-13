@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Maze Architecture Framework | Interactive Engine</title>
+  <meta name="description" content="Interactive maze generator and pathfinder engine supporting Recursive Backtracker, BFS, A*, Dijkstra, and Dead-End Filler." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090a0f;
+      --card-bg: rgba(18, 20, 29, 0.75);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.6);
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --red: #f43f5e;
+      --amber: #f59e0b;
+      --purple: #a855f7;
+      --wall: #0f121d;
+      --path: #22d3ee;
+      --visited: rgba(99, 102, 241, 0.35);
+      --frontier: rgba(245, 158, 11, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.08) 0%, transparent 40%);
+    }
+
+    header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      background: rgba(9, 10, 15, 0.85);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    }
+
+    h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-links {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .github-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .github-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+      gap: 1.5rem;
+      padding: 1.5rem;
+      max-width: 1700px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Sidebar Controls */
+    .sidebar {
+      width: 340px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    .panel-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .control-group {
+      margin-bottom: 1.1rem;
+    }
+
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    select, input[type="range"], button {
+      width: 100%;
+      font-family: inherit;
+    }
+
+    select {
+      background: rgba(10, 12, 18, 0.85);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.6rem 0.8rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    select:focus {
+      border-color: var(--border-focus);
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+    }
+
+    button {
+      padding: 0.7rem 1rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.86rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #4338ca);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-solve {
+      background: linear-gradient(135deg, var(--cyan), #0284c7);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
+    }
+
+    .btn-solve:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+      background: rgba(255, 255, 255, 0.08);
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .slider-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--cyan);
+      min-width: 44px;
+      text-align: right;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .stat-item {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 0.2rem;
+    }
+
+    /* Canvas Stage */
+    .stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 500px;
+      position: relative;
+    }
+
+    .canvas-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 100%;
+      position: relative;
+    }
+
+    canvas {
+      border-radius: 8px;
+      display: block;
+      cursor: crosshair;
+      background: #000;
+      max-width: 100%;
+      height: auto;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      margin-top: 0.85rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      justify-content: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    .dot-start { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .dot-end { background: var(--red); box-shadow: 0 0 8px var(--red); }
+    .dot-path { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+    .dot-visited { background: var(--purple); }
+    .dot-wall { background: #fff; }
+
+    /* Floating Toolbar */
+    .canvas-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      width: 100%;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .badge-status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .main-container {
+        flex-direction: column;
+        padding: 1rem;
+      }
+      .sidebar {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="logo-badge">🏛️</div>
+      <div>
+        <h1>Maze Architecture Framework</h1>
+      </div>
+    </div>
+    <div class="header-links">
+      <a href="https://github.com/RushilMahadevu/maze-architecture-framework" target="_blank" rel="noopener" class="github-btn">
+        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+        </svg>
+        GitHub Repo
+      </a>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Controls Sidebar -->
+    <aside class="sidebar">
+      
+      <!-- Generator Panel -->
+      <section class="panel">
+        <div class="panel-title">⚙️ Generation</div>
+        
+        <div class="control-group">
+          <label for="generator-select">Algorithm</label>
+          <select id="generator-select">
+            <option value="backtracker" selected>Recursive Backtracker (DFS)</option>
+            <option value="blank">Blank Grid (Custom Draw)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Grid Size: <span id="size-label" class="slider-val">31 × 31</span></label>
+          <div class="slider-container">
+            <input type="range" id="size-slider" min="15" max="65" step="2" value="31" />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="btn-row">
+            <button id="btn-generate" class="btn-primary">Generate</button>
+            <button id="btn-reset" class="btn-secondary">Clear</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Solver Panel -->
+      <section class="panel">
+        <div class="panel-title">🧭 Pathfinding & Solver</div>
+
+        <div class="control-group">
+          <label for="solver-select">Solving Algorithm</label>
+          <select id="solver-select">
+            <option value="astar" selected>A* Search (Manhattan Heuristic)</option>
+            <option value="bfs">Breadth-First Search (BFS)</option>
+            <option value="dijkstra">Dijkstra's Algorithm</option>
+            <option value="deadend">Dead-End Filler</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Animation Speed: <span id="speed-label" class="slider-val">Fast</span></label>
+          <div class="slider-container">
+            <input type="range" id="speed-slider" min="1" max="5" step="1" value="4" />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="btn-row">
+            <button id="btn-solve" class="btn-solve">Solve Maze</button>
+            <button id="btn-clear-path" class="btn-secondary">Clear Path</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Statistics Panel -->
+      <section class="panel">
+        <div class="panel-title">📊 Metrics</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Visited Cells</div>
+            <div id="stat-visited" class="stat-value">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Path Length</div>
+            <div id="stat-length" class="stat-value">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Efficiency</div>
+            <div id="stat-efficiency" class="stat-value">0.0%</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Time</div>
+            <div id="stat-time" class="stat-value">0 ms</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Export Panel -->
+      <section class="panel">
+        <div class="panel-title">💾 Export</div>
+        <div class="btn-row">
+          <button id="btn-export-png" class="btn-secondary">Export PNG</button>
+          <button id="btn-export-json" class="btn-secondary">Export JSON</button>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- Canvas Stage -->
+    <section class="stage">
+      <div class="canvas-card">
+        <div class="canvas-actions">
+          <div id="status-badge" class="badge-status">Ready</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">
+            Tip: Click or drag on canvas to toggle walls
+          </div>
+        </div>
+
+        <canvas id="mazeCanvas" width="800" height="800"></canvas>
+
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot dot-start"></div> Start</div>
+          <div class="legend-item"><div class="legend-dot dot-end"></div> End</div>
+          <div class="legend-item"><div class="legend-dot dot-wall"></div> Wall</div>
+          <div class="legend-item"><div class="legend-dot dot-visited"></div> Explored</div>
+          <div class="legend-item"><div class="legend-dot dot-path"></div> Solution</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /* =========================================================================
+       MAZE ARCHITECTURE FRAMEWORK - Web Engine
+       Ported algorithms matching maze_core.py, generators.py, and pathfinders.py
+       ========================================================================= */
+
+    const CellType = {
+      EMPTY: 0,
+      WALL: 1,
+      START: 2,
+      END: 3
+    };
+
+    class MazeEngine {
+      constructor(width = 31, height = 31) {
+        this.width = width;
+        this.height = height;
+        this.grid = [];
+        this.startPos = { x: 1, y: 1 };
+        this.endPos = { x: width - 2, y: height - 2 };
+        this.visitedNodes = [];
+        this.solutionPath = [];
+        this.resetGrid(CellType.WALL);
+      }
+
+      resetGrid(fillType = CellType.WALL) {
+        this.grid = Array.from({ length: this.height }, () => Array(this.width).fill(fillType));
+        this.visitedNodes = [];
+        this.solutionPath = [];
+        
+        // Boundaries
+        for (let x = 0; x < this.width; x++) {
+          this.grid[0][x] = CellType.WALL;
+          this.grid[this.height - 1][x] = CellType.WALL;
+        }
+        for (let y = 0; y < this.height; y++) {
+          this.grid[y][0] = CellType.WALL;
+          this.grid[y][this.width - 1] = CellType.WALL;
+        }
+
+        this.startPos = { x: 1, y: 1 };
+        this.endPos = { x: this.width - 2, y: this.height - 2 };
+        this.grid[this.startPos.y][this.startPos.x] = CellType.START;
+        this.grid[this.endPos.y][this.endPos.x] = CellType.END;
+      }
+
+      // Generator: Iterative Recursive Backtracker
+      *generateBacktracker() {
+        this.resetGrid(CellType.WALL);
+        const stack = [ { x: this.startPos.x, y: this.startPos.y } ];
+        const visited = new Set();
+        visited.add(`${this.startPos.x},${this.startPos.y}`);
+
+        const directions = [
+          { dx: 2, dy: 0 },
+          { dx: 0, dy: 2 },
+          { dx: -2, dy: 0 },
+          { dx: 0, dy: -2 }
+        ];
+
+        while (stack.length > 0) {
+          const current = stack[stack.length - 1];
+          const unvisitedNeighbors = [];
+
+          for (const dir of directions) {
+            const nx = current.x + dir.dx;
+            const ny = current.y + dir.dy;
+            if (nx > 0 && nx < this.width - 1 && ny > 0 && ny < this.height - 1 && !visited.has(`${nx},${ny}`)) {
+              unvisitedNeighbors.push({ x: nx, y: ny, wx: current.x + dir.dx / 2, wy: current.y + dir.dy / 2 });
+            }
+          }
+
+          if (unvisitedNeighbors.length > 0) {
+            const next = unvisitedNeighbors[Math.floor(Math.random() * unvisitedNeighbors.length)];
+            
+            // Carve wall and cell
+            this.grid[next.wy][next.wx] = CellType.EMPTY;
+            this.grid[next.y][next.x] = CellType.EMPTY;
+
+            visited.add(`${next.x},${next.y}`);
+            stack.push({ x: next.x, y: next.y });
+            yield { type: 'carve', x: next.x, y: next.y, wx: next.wx, wy: next.wy };
+          } else {
+            stack.pop();
+          }
+        }
+
+        // Ensure connection to end
+        if (this.grid[this.endPos.y][this.endPos.x - 1] === CellType.WALL && this.grid[this.endPos.y - 1][this.endPos.x] === CellType.WALL) {
+          if (Math.random() > 0.5 && this.endPos.x > 1) {
+            this.grid[this.endPos.y][this.endPos.x - 1] = CellType.EMPTY;
+          } else if (this.endPos.y > 1) {
+            this.grid[this.endPos.y - 1][this.endPos.x] = CellType.EMPTY;
+          }
+        }
+
+        this.grid[this.startPos.y][this.startPos.x] = CellType.START;
+        this.grid[this.endPos.y][this.endPos.x] = CellType.END;
+      }
+
+      // Pathfinder: BFS
+      *solveBFS() {
+        const queue = [ [this.startPos] ];
+        const visited = new Set([`${this.startPos.x},${this.startPos.y}`]);
+        const directions = [{dx: 1, dy: 0}, {dx: 0, dy: 1}, {dx: -1, dy: 0}, {dx: 0, dy: -1}];
+
+        while (queue.length > 0) {
+          const path = queue.shift();
+          const curr = path[path.length - 1];
+
+          if (curr.x === this.endPos.x && curr.y === this.endPos.y) {
+            this.solutionPath = path;
+            return path;
+          }
+
+          for (const d of directions) {
+            const nx = curr.x + d.dx;
+            const ny = curr.y + d.dy;
+            const key = `${nx},${ny}`;
+
+            if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height && !visited.has(key)) {
+              if (this.grid[ny][nx] !== CellType.WALL) {
+                visited.add(key);
+                this.visitedNodes.push({ x: nx, y: ny });
+                queue.push([...path, { x: nx, y: ny }]);
+                yield { type: 'explore', x: nx, y: ny };
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      // Pathfinder: A* Search
+      *solveAStar() {
+        const heuristic = (p1, p2) => Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
+        const openSet = [{ pos: this.startPos, g: 0, f: heuristic(this.startPos, this.endPos), path: [this.startPos] }];
+        const visited = new Set();
+        const gScores = new Map();
+        gScores.set(`${this.startPos.x},${this.startPos.y}`, 0);
+        const directions = [{dx: 1, dy: 0}, {dx: 0, dy: 1}, {dx: -1, dy: 0}, {dx: 0, dy: -1}];
+
+        while (openSet.length > 0) {
+          openSet.sort((a, b) => a.f - b.f);
+          const current = openSet.shift();
+          const currPos = current.pos;
+          const currKey = `${currPos.x},${currPos.y}`;
+
+          if (currPos.x === this.endPos.x && currPos.y === this.endPos.y) {
+            this.solutionPath = current.path;
+            return current.path;
+          }
+
+          if (visited.has(currKey)) continue;
+          visited.add(currKey);
+
+          for (const d of directions) {
+            const nx = currPos.x + d.dx;
+            const ny = currPos.y + d.dy;
+            const nextKey = `${nx},${ny}`;
+
+            if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height && !visited.has(nextKey) && this.grid[ny][nx] !== CellType.WALL) {
+              const tentativeG = current.g + 1;
+              if (!gScores.has(nextKey) || tentativeG < gScores.get(nextKey)) {
+                gScores.set(nextKey, tentativeG);
+                const f = tentativeG + heuristic({ x: nx, y: ny }, this.endPos);
+                openSet.push({ pos: { x: nx, y: ny }, g: tentativeG, f: f, path: [...current.path, { x: nx, y: ny }] });
+                this.visitedNodes.push({ x: nx, y: ny });
+                yield { type: 'explore', x: nx, y: ny };
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      // Pathfinder: Dijkstra's Algorithm
+      *solveDijkstra() {
+        const pq = [{ pos: this.startPos, dist: 0, path: [this.startPos] }];
+        const visited = new Set();
+        const dists = new Map();
+        dists.set(`${this.startPos.x},${this.startPos.y}`, 0);
+        const directions = [{dx: 1, dy: 0}, {dx: 0, dy: 1}, {dx: -1, dy: 0}, {dx: 0, dy: -1}];
+
+        while (pq.length > 0) {
+          pq.sort((a, b) => a.dist - b.dist);
+          const current = pq.shift();
+          const currPos = current.pos;
+          const currKey = `${currPos.x},${currPos.y}`;
+
+          if (currPos.x === this.endPos.x && currPos.y === this.endPos.y) {
+            this.solutionPath = current.path;
+            return current.path;
+          }
+
+          if (visited.has(currKey)) continue;
+          visited.add(currKey);
+
+          for (const d of directions) {
+            const nx = currPos.x + d.dx;
+            const ny = currPos.y + d.dy;
+            const nextKey = `${nx},${ny}`;
+
+            if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height && !visited.has(nextKey) && this.grid[ny][nx] !== CellType.WALL) {
+              const newDist = current.dist + 1;
+              if (!dists.has(nextKey) || newDist < dists.get(nextKey)) {
+                dists.set(nextKey, newDist);
+                pq.push({ pos: { x: nx, y: ny }, dist: newDist, path: [...current.path, { x: nx, y: ny }] });
+                this.visitedNodes.push({ x: nx, y: ny });
+                yield { type: 'explore', x: nx, y: ny };
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      // Pathfinder: Dead-End Filler
+      *solveDeadEnd() {
+        const working = this.grid.map(row => [...row]);
+        let changed = true;
+        const directions = [{dx: 1, dy: 0}, {dx: 0, dy: 1}, {dx: -1, dy: 0}, {dx: 0, dy: -1}];
+
+        while (changed) {
+          changed = false;
+          for (let y = 1; y < this.height - 1; y++) {
+            for (let x = 1; x < this.width - 1; x++) {
+              if (working[y][x] === CellType.WALL) continue;
+              if ((x === this.startPos.x && y === this.startPos.y) || (x === this.endPos.x && y === this.endPos.y)) continue;
+
+              let passableNeighbors = 0;
+              for (const d of directions) {
+                if (working[y + d.dy][x + d.dx] !== CellType.WALL) {
+                  passableNeighbors++;
+                }
+              }
+
+              if (passableNeighbors <= 1) {
+                working[y][x] = CellType.WALL;
+                this.visitedNodes.push({ x, y });
+                changed = true;
+                yield { type: 'deadend_fill', x, y };
+              }
+            }
+          }
+        }
+
+        // BFS on pruned working grid
+        const queue = [ [this.startPos] ];
+        const visited = new Set([`${this.startPos.x},${this.startPos.y}`]);
+        while (queue.length > 0) {
+          const path = queue.shift();
+          const curr = path[path.length - 1];
+
+          if (curr.x === this.endPos.x && curr.y === this.endPos.y) {
+            this.solutionPath = path;
+            return path;
+          }
+
+          for (const d of directions) {
+            const nx = curr.x + d.dx;
+            const ny = curr.y + d.dy;
+            const key = `${nx},${ny}`;
+            if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height && !visited.has(key) && working[ny][nx] !== CellType.WALL) {
+              visited.add(key);
+              queue.push([...path, { x: nx, y: ny }]);
+            }
+          }
+        }
+        return null;
+      }
+    }
+
+    /* =========================================================================
+       UI & RENDERING CONTROLLER
+       ========================================================================= */
+
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    let engine = new MazeEngine(31, 31);
+    let isRunning = false;
+    let activeGenerator = null;
+    let animationFrameId = null;
+
+    // UI elements
+    const sizeSlider = document.getElementById('size-slider');
+    const sizeLabel = document.getElementById('size-label');
+    const speedSlider = document.getElementById('speed-slider');
+    const speedLabel = document.getElementById('speed-label');
+    const statusBadge = document.getElementById('status-badge');
+    const statVisited = document.getElementById('stat-visited');
+    const statLength = document.getElementById('stat-length');
+    const statEfficiency = document.getElementById('stat-efficiency');
+    const statTime = document.getElementById('stat-time');
+
+    const btnGenerate = document.getElementById('btn-generate');
+    const btnSolve = document.getElementById('btn-solve');
+    const btnReset = document.getElementById('btn-reset');
+    const btnClearPath = document.getElementById('btn-clear-path');
+    const btnExportPng = document.getElementById('btn-export-png');
+    const btnExportJson = document.getElementById('btn-export-json');
+    const generatorSelect = document.getElementById('generator-select');
+    const solverSelect = document.getElementById('solver-select');
+
+    const speedMap = {
+      1: { name: 'Slow', stepsPerFrame: 1, delay: 40 },
+      2: { name: 'Medium', stepsPerFrame: 2, delay: 15 },
+      3: { name: 'Fast', stepsPerFrame: 5, delay: 0 },
+      4: { name: 'Super', stepsPerFrame: 15, delay: 0 },
+      5: { name: 'Instant', stepsPerFrame: Infinity, delay: 0 }
+    };
+
+    function updateSizeDisplay() {
+      const val = parseInt(sizeSlider.value);
+      sizeLabel.textContent = `${val} × ${val}`;
+    }
+
+    function fitCanvasSize() {
+      const containerWidth = Math.min(window.innerWidth - 48, 850);
+      const cellSize = Math.floor(containerWidth / engine.width);
+      const actualSize = cellSize * engine.width;
+      
+      canvas.width = actualSize;
+      canvas.height = actualSize;
+      render();
+    }
+
+    function render() {
+      const cellSize = canvas.width / engine.width;
+      ctx.fillStyle = '#090a0f';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Render cells
+      for (let y = 0; y < engine.height; y++) {
+        for (let x = 0; x < engine.width; x++) {
+          const type = engine.grid[y][x];
+          const px = x * cellSize;
+          const py = y * cellSize;
+
+          if (type === CellType.WALL) {
+            ctx.fillStyle = '#1e2230';
+            ctx.fillRect(px, py, cellSize, cellSize);
+            // Crisp inner border for walls
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.strokeRect(px + 0.5, py + 0.5, cellSize - 1, cellSize - 1);
+          } else {
+            ctx.fillStyle = '#07090e';
+            ctx.fillRect(px, py, cellSize, cellSize);
+          }
+        }
+      }
+
+      // Render visited
+      const visitedSet = new Set(engine.solutionPath.map(p => `${p.x},${p.y}`));
+      ctx.fillStyle = 'rgba(129, 140, 248, 0.35)';
+      for (const node of engine.visitedNodes) {
+        if (!visitedSet.has(`${node.x},${node.y}`)) {
+          ctx.fillRect(node.x * cellSize + 1, node.y * cellSize + 1, cellSize - 2, cellSize - 2);
+        }
+      }
+
+      // Render solution path with glow
+      if (engine.solutionPath.length > 0) {
+        ctx.fillStyle = '#22d3ee';
+        ctx.shadowColor = '#06b6d4';
+        ctx.shadowBlur = 10;
+        for (const p of engine.solutionPath) {
+          ctx.fillRect(p.x * cellSize + 1.5, p.y * cellSize + 1.5, cellSize - 3, cellSize - 3);
+        }
+        ctx.shadowBlur = 0;
+      }
+
+      // Render Start & End
+      const drawMarker = (pos, color, glowColor) => {
+        const px = pos.x * cellSize;
+        const py = pos.y * cellSize;
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = color;
+        ctx.fillRect(px + 1, py + 1, cellSize - 2, cellSize - 2);
+        ctx.shadowBlur = 0;
+      };
+
+      drawMarker(engine.startPos, '#10b981', '#10b981');
+      drawMarker(engine.endPos, '#f43f5e', '#f43f5e');
+    }
+
+    function updateStats(startTime, solved = false) {
+      const elapsed = startTime ? Math.round(performance.now() - startTime) : 0;
+      statTime.textContent = `${elapsed} ms`;
+      statVisited.textContent = engine.visitedNodes.length;
+      statLength.textContent = engine.solutionPath.length;
+
+      let emptyCount = 0;
+      for (let y = 0; y < engine.height; y++) {
+        for (let x = 0; x < engine.width; x++) {
+          if (engine.grid[y][x] !== CellType.WALL) emptyCount++;
+        }
+      }
+
+      if (engine.solutionPath.length > 0 && emptyCount > 0) {
+        const eff = ((engine.solutionPath.length / emptyCount) * 100).toFixed(1);
+        statEfficiency.textContent = `${eff}%`;
+      } else {
+        statEfficiency.textContent = '0.0%';
+      }
+    }
+
+    function setControlsDisabled(disabled) {
+      btnGenerate.disabled = disabled;
+      btnSolve.disabled = disabled;
+      btnReset.disabled = disabled;
+      btnClearPath.disabled = disabled;
+      sizeSlider.disabled = disabled;
+    }
+
+    function runAnimation(generator, onComplete) {
+      if (isRunning) return;
+      isRunning = true;
+      setControlsDisabled(true);
+
+      const speedConfig = speedMap[speedSlider.value];
+      const startTime = performance.now();
+
+      function step() {
+        if (!isRunning) return;
+
+        if (speedConfig.stepsPerFrame === Infinity) {
+          // Instant completion
+          while (!generator.next().done) {}
+          render();
+          finish();
+          return;
+        }
+
+        for (let i = 0; i < speedConfig.stepsPerFrame; i++) {
+          const res = generator.next();
+          if (res.done) {
+            render();
+            finish();
+            return;
+          }
+        }
+
+        render();
+        updateStats(startTime);
+
+        if (speedConfig.delay > 0) {
+          setTimeout(() => {
+            animationFrameId = requestAnimationFrame(step);
+          }, speedConfig.delay);
+        } else {
+          animationFrameId = requestAnimationFrame(step);
+        }
+      }
+
+      function finish() {
+        isRunning = false;
+        setControlsDisabled(false);
+        if (onComplete) onComplete(startTime);
+      }
+
+      step();
+    }
+
+    // Interactive canvas wall drawing
+    let isDrawing = false;
+    let drawMode = CellType.WALL;
+
+    function handlePointer(e) {
+      if (isRunning) return;
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const x = Math.floor(((clientX - rect.left) / rect.width) * engine.width);
+      const y = Math.floor(((clientY - rect.top) / rect.height) * engine.height);
+
+      if (x > 0 && x < engine.width - 1 && y > 0 && y < engine.height - 1) {
+        if ((x === engine.startPos.x && y === engine.startPos.y) || (x === engine.endPos.x && y === engine.endPos.y)) {
+          return;
+        }
+        engine.grid[y][x] = drawMode;
+        render();
+      }
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor(((e.clientX - rect.left) / rect.width) * engine.width);
+      const y = Math.floor(((e.clientY - rect.top) / rect.height) * engine.height);
+      if (x >= 0 && x < engine.width && y >= 0 && y < engine.height) {
+        drawMode = engine.grid[y][x] === CellType.WALL ? CellType.EMPTY : CellType.WALL;
+      }
+      handlePointer(e);
+    });
+
+    window.addEventListener('mouseup', () => { isDrawing = false; });
+    canvas.addEventListener('mousemove', (e) => { if (isDrawing) handlePointer(e); });
+    canvas.addEventListener('touchstart', (e) => { isDrawing = true; handlePointer(e); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => { if (isDrawing) handlePointer(e); e.preventDefault(); }, { passive: false });
+    window.addEventListener('touchend', () => { isDrawing = false; });
+
+    // Buttons
+    btnGenerate.addEventListener('click', () => {
+      engine.visitedNodes = [];
+      engine.solutionPath = [];
+      const genType = generatorSelect.value;
+
+      if (genType === 'blank') {
+        engine.resetGrid(CellType.EMPTY);
+        render();
+        statusBadge.textContent = 'Custom Canvas Ready';
+        return;
+      }
+
+      statusBadge.textContent = 'Generating maze...';
+      const gen = engine.generateBacktracker();
+      runAnimation(gen, (startTime) => {
+        statusBadge.textContent = 'Maze Generated';
+        updateStats(startTime);
+      });
+    });
+
+    btnSolve.addEventListener('click', () => {
+      engine.visitedNodes = [];
+      engine.solutionPath = [];
+      render();
+
+      const solverType = solverSelect.value;
+      let solverGen;
+      let name = '';
+
+      if (solverType === 'astar') {
+        solverGen = engine.solveAStar();
+        name = 'A* Search';
+      } else if (solverType === 'bfs') {
+        solverGen = engine.solveBFS();
+        name = 'BFS';
+      } else if (solverType === 'dijkstra') {
+        solverGen = engine.solveDijkstra();
+        name = 'Dijkstra';
+      } else if (solverType === 'deadend') {
+        solverGen = engine.solveDeadEnd();
+        name = 'Dead-End Filler';
+      }
+
+      statusBadge.textContent = `Solving with ${name}...`;
+      runAnimation(solverGen, (startTime) => {
+        statusBadge.textContent = engine.solutionPath.length > 0 ? `Solved via ${name}!` : 'No Path Found!';
+        updateStats(startTime, true);
+      });
+    });
+
+    btnClearPath.addEventListener('click', () => {
+      engine.visitedNodes = [];
+      engine.solutionPath = [];
+      render();
+      updateStats(0);
+      statusBadge.textContent = 'Path Cleared';
+    });
+
+    btnReset.addEventListener('click', () => {
+      engine.resetGrid(CellType.WALL);
+      render();
+      updateStats(0);
+      statusBadge.textContent = 'Grid Reset';
+    });
+
+    sizeSlider.addEventListener('input', () => {
+      updateSizeDisplay();
+    });
+
+    sizeSlider.addEventListener('change', () => {
+      const size = parseInt(sizeSlider.value);
+      engine = new MazeEngine(size, size);
+      fitCanvasSize();
+      btnGenerate.click();
+    });
+
+    speedSlider.addEventListener('input', () => {
+      const speedConfig = speedMap[speedSlider.value];
+      speedLabel.textContent = speedConfig.name;
+    });
+
+    // Export PNG
+    btnExportPng.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = `maze_${engine.width}x${engine.height}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    // Export JSON (matches visualization.py JSON structure)
+    btnExportJson.addEventListener('click', () => {
+      const mazeData = {
+        width: engine.width,
+        height: engine.height,
+        start_position: { x: engine.startPos.x, y: engine.startPos.y },
+        end_position: { x: engine.endPos.x, y: engine.endPos.y },
+        grid: engine.grid.map(row => row.map(cell => {
+          if (cell === CellType.WALL) return '#';
+          if (cell === CellType.START) return 'S';
+          if (cell === CellType.END) return 'E';
+          return ' ';
+        })),
+        solution_path: engine.solutionPath.length > 0 ? engine.solutionPath : null
+      };
+
+      const blob = new Blob([JSON.stringify(mazeData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `maze_${engine.width}x${engine.height}.json`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    window.addEventListener('resize', fitCanvasSize);
+
+    // Initial setup
+    updateSizeDisplay();
+    fitCanvasSize();
+    btnGenerate.click();
+  </script>
+</body>
+</html>
